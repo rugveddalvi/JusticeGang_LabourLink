@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — LabourLink</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .auth-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 20px 40px;
+        }
+        .auth-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 48px 40px;
+            max-width: 460px;
+            width: 100%;
+            animation: fadeUp 0.5s ease;
+        }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .auth-header .emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
+        .auth-header h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .auth-header p { color: var(--text-muted); }
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-muted);
+        }
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <header class="navbar" id="navbar"></header>
+
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="auth-header">
+                <span class="emoji">👋</span>
+                <h2>Welcome Back</h2>
+                <p>Login with your phone number</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phone" class="form-input" placeholder="e.g. 9876543210" required
+                        pattern="[0-9]{10}" title="Enter 10-digit phone number">
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="loginBtn">
+                    Login
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="/signup.html">Sign up free</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+
+            const result = await api('/users/login', {
+                method: 'POST',
+                body: {
+                    phone: document.getElementById('phone').value.trim(),
+                    password: document.getElementById('password').value
+                }
+            });
+
+            if (result.success) {
+                setCurrentUser(result.data);
+                showToast('Welcome back! 🎉', 'success');
+                setTimeout(() => {
+                    const dash = result.data.role === 'WORKER' ? '/worker-dashboard.html' : '/contractor-dashboard.html';
+                    window.location.href = dash;
+                }, 800);
+            } else {
+                showToast(result.message || 'Login failed', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        }
+    </script>
+</body>
+</html>

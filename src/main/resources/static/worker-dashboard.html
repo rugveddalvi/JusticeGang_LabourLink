@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Dashboard — LabourLink</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 32px;
+            animation: fadeUp 0.5s ease;
+        }
+        .welcome-text h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        .welcome-text p { color: var(--text-muted); }
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            animation: fadeUp 0.5s ease 0.1s both;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 10px 16px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .filter-bar select:focus, .filter-bar input:focus {
+            border-color: var(--primary);
+        }
+        .jobs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+        .job-meta { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; align-items: center; }
+        .job-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .job-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.15rem;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeUp 0.4s ease; }
+        .app-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+        .app-card:hover {
+            border-color: rgba(255,107,53,0.2);
+        }
+        .history-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+        .history-card:hover {
+            border-color: rgba(0,201,167,0.2);
+            box-shadow: 0 0 30px rgba(0,201,167,0.1);
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 640px) {
+            .jobs-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <header class="navbar" id="navbar"></header>
+
+    <div class="page-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="avatar avatar-lg" id="userAvatar">?</div>
+            <div class="welcome-text">
+                <h2 id="welcomeMsg">Welcome!</h2>
+                <p id="userMeta">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid-4 mb-3" id="statsGrid" style="animation: fadeUp 0.5s ease 0.15s both;"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('browse')">🔍 Browse Jobs</button>
+            <button class="tab" onclick="switchTab('applications')">📋 My Applications</button>
+            <button class="tab" onclick="switchTab('history')">📜 Work History</button>
+        </div>
+
+        <!-- Tab: Browse Jobs -->
+        <div class="tab-content active" id="tab-browse">
+            <div class="filter-bar">
+                <select id="filterSkill" onchange="loadJobs()">
+                    <option value="">All Skills</option>
+                    <option value="MASON">🧱 Mason</option>
+                    <option value="ELECTRICIAN">⚡ Electrician</option>
+                    <option value="PAINTER">🎨 Painter</option>
+                    <option value="LABOURER">💪 Labourer</option>
+                    <option value="PLUMBER">🔧 Plumber</option>
+                    <option value="CARPENTER">🪚 Carpenter</option>
+                    <option value="WELDER">🔥 Welder</option>
+                    <option value="TILE_FITTER">🔲 Tile Fitter</option>
+                    <option value="ROD_BINDER">🏗️ Rod Binder</option>
+                    <option value="HELPER">🤝 Helper</option>
+                </select>
+                <select id="filterLocation" onchange="loadJobs()">
+                    <option value="">All Cities</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Bangalore">Bangalore</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Hyderabad">Hyderabad</option>
+                    <option value="Chennai">Chennai</option>
+                    <option value="Kolkata">Kolkata</option>
+                    <option value="Ahmedabad">Ahmedabad</option>
+                    <option value="Jaipur">Jaipur</option>
+                    <option value="Nagpur">Nagpur</option>
+                </select>
+                <button class="btn btn-sm btn-secondary" onclick="document.getElementById('filterSkill').value='';document.getElementById('filterLocation').value='';loadJobs();">Clear Filters</button>
+            </div>
+            <div class="jobs-grid" id="jobsList"></div>
+        </div>
+
+        <!-- Tab: My Applications -->
+        <div class="tab-content" id="tab-applications">
+            <div id="applicationsList"></div>
+        </div>
+
+        <!-- Tab: Work History -->
+        <div class="tab-content" id="tab-history">
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <!-- Rate Contractor Modal -->
+    <div class="modal-overlay" id="rateModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>⭐ Rate Contractor</h2>
+                <button class="modal-close" onclick="closeModal('rateModal')">✕</button>
+            </div>
+            <input type="hidden" id="rateWorkHistoryId">
+            <div class="form-group">
+                <label>How was your experience with this contractor?</label>
+                <div class="stars" id="rateStars" style="font-size: 2rem; margin: 16px 0;">
+                    <span class="star" data-value="1" onclick="setRating(1)">★</span>
+                    <span class="star" data-value="2" onclick="setRating(2)">★</span>
+                    <span class="star" data-value="3" onclick="setRating(3)">★</span>
+                    <span class="star" data-value="4" onclick="setRating(4)">★</span>
+                    <span class="star" data-value="5" onclick="setRating(5)">★</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Note (optional)</label>
+                <input type="text" id="rateNote" class="form-input" placeholder="e.g. Good working conditions, paid on time">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="submitRating()">Submit Rating</button>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        const user = requireAuth();
+        if (user && user.role !== 'WORKER') {
+            window.location.href = '/contractor-dashboard.html';
+        }
+
+        let currentRating = 0;
+
+        // ===== Init =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderNavbar('dashboard');
+            if (!user) return;
+
+            document.getElementById('userAvatar').textContent = getInitials(user.name);
+            document.getElementById('welcomeMsg').textContent = `Welcome, ${user.name}! 👋`;
+            document.getElementById('userMeta').textContent = `${skillIcons[user.primarySkill] || '🔨'} ${(user.primarySkill || '').replace('_',' ')} • ${user.city} • Rating: ${user.averageRating || 0}/5 (${user.totalRatings || 0} reviews)`;
+
+            await Promise.all([loadStats(), loadJobs(), loadApplications(), loadHistory()]);
+        });
+
+        // ===== Stats =====
+        async function loadStats() {
+            const [appsRes, histRes] = await Promise.all([
+                api(`/jobs/applications/worker/${user.id}`),
+                api(`/work-history/worker/${user.id}`)
+            ]);
+
+            const apps = appsRes.success ? appsRes.data : [];
+            const history = histRes.success ? histRes.data : [];
+
+            const applied = apps.filter(a => a.status === 'APPLIED').length;
+            const selected = apps.filter(a => a.status === 'SELECTED').length;
+            const completed = history.length;
+
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(59,130,246,0.12);">📝</div>
+                    <div class="stat-value" style="color: #60A5FA;">${applied}</div>
+                    <div class="stat-label">Pending Applications</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(16,185,129,0.12);">✅</div>
+                    <div class="stat-value" style="color: #34D399;">${selected}</div>
+                    <div class="stat-label">Selected Jobs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99,102,241,0.12);">🏆</div>
+                    <div class="stat-value" style="color: #818CF8;">${completed}</div>
+                    <div class="stat-label">Jobs Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(255,184,0,0.12);">⭐</div>
+                    <div class="stat-value" style="color: #FBBF24;">${user.averageRating || '0.0'}</div>
+                    <div class="stat-label">Average Rating</div>
+                </div>
+            `;
+        }
+
+        // ===== Tabs =====
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'applications') loadApplications();
+            if (tabName === 'history') loadHistory();
+        }
+
+        // ===== Load Jobs =====
+        async function loadJobs() {
+            const skill = document.getElementById('filterSkill').value;
+            const location = document.getElementById('filterLocation').value;
+
+            let url = '/jobs/open?';
+            if (skill) url += `skill=${skill}&`;
+            if (location) url += `location=${location}&`;
+
+            const result = await api(url);
+            const jobs = result.success ? result.data : [];
+
+            if (jobs.length === 0) {
+                document.getElementById('jobsList').innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-icon">🔍</div>
+                        <h3>No jobs found</h3>
+                        <p>Try adjusting your filters or check back later</p>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('jobsList').innerHTML = jobs.map(job => `
+                <div class="job-card">
+                    ${job.urgentFlag ? '<div class="urgent-badge">🔥 URGENT</div>' : ''}
+                    <div class="job-header">
+                        <div class="job-title">${job.title}</div>
+                    </div>
+                    <div class="job-meta">
+                        ${skillDisplay(job.skillRequired)}
+                        <span class="job-meta-item">📍 ${job.location}</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">${job.description || 'No description'}</p>
+                    <div class="job-meta">
+                        <span class="job-meta-item">📅 ${formatDate(job.startDate)}</span>
+                        <span class="job-meta-item">⏱️ ${job.durationDays || '?'} days</span>
+                        <span class="job-meta-item">👷 ${job.numberOfWorkersNeeded} needed</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--glass-border);">
+                        <div class="pay-rate">${formatCurrency(job.dailyRate)} <span>/day</span></div>
+                        <button class="btn btn-primary btn-sm" onclick="applyToJob(${job.id})" id="apply-btn-${job.id}">
+                            Apply Now
+                        </button>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);">
+                        Posted by: ${job.contractorName || 'Unknown'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== Apply to Job =====
+        async function applyToJob(jobId) {
+            const btn = document.getElementById(`apply-btn-${jobId}`);
+            btn.disabled = true;
+            btn.textContent = 'Applying...';
+
+            const result = await api(`/jobs/${jobId}/apply?workerId=${user.id}`, { method: 'POST' });
+
+            if (result.success) {
+                showToast('Application submitted! 🎉', 'success');
+                btn.textContent = '✅ Applied';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+                loadStats();
+            } else {
+                showToast(result.message || 'Failed to apply', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Apply Now';
+            }
+        }
+
+        // ===== Load Applications =====
+        async function loadApplications() {
+            const result = await api(`/jobs/applications/worker/${user.id}`);
+            const apps = result.success ? result.data : [];
+
+            if (apps.length === 0) {
+                document.getElementById('applicationsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <h3>No applications yet</h3>
+                        <p>Browse jobs and apply to get started!</p>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('applicationsList').innerHTML = apps.map(app => `
+                <div class="app-card">
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Job #${app.jobId}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Applied: ${formatDate(app.appliedAt)}</div>
+                    </div>
+                    ${statusBadge(app.status)}
+                </div>
+            `).join('');
+        }
+
+        // ===== Load Work History =====
+        async function loadHistory() {
+            const result = await api(`/work-history/worker/${user.id}`);
+            const history = result.success ? result.data : [];
+
+            if (history.length === 0) {
+                document.getElementById('historyList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📜</div>
+                        <h3>No completed jobs yet</h3>
+                        <p>Complete your first job to build your verified work history</p>
+                    </div>`;
+                return;
+            }
+
+            // Also load endorsements
+            const endorseRes = await api(`/work-history/endorsements/worker/${user.id}`);
+            const allEndorsements = endorseRes.success ? endorseRes.data : [];
+
+            document.getElementById('historyList').innerHTML = history.map(wh => {
+                const endorsements = allEndorsements.filter(e => e.workHistoryId === wh.id);
+                return `
+                <div class="history-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <div style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.1rem;">${wh.jobTitle || 'Job #' + wh.jobId}</div>
+                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">
+                                ${skillDisplay(wh.skillUsed)} • 📍 ${wh.location || 'N/A'} • Contractor: ${wh.contractorName || 'N/A'}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">${formatDate(wh.startDate)} — ${formatDate(wh.endDate)}</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap;">
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Contractor rated you:</span>
+                            ${wh.contractorRated ? `<div>${renderStars(wh.workerRating)} <span style="color: var(--warning); font-weight: 600;">${wh.workerRating}/5</span></div>` : '<div style="color: var(--text-muted); font-size: 0.85rem;">Pending</div>'}
+                            ${wh.workerNote ? `<div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">"${wh.workerNote}"</div>` : ''}
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">You rated contractor:</span>
+                            ${wh.workerRated ? `<div>${renderStars(wh.contractorRating)} <span style="color: var(--warning); font-weight: 600;">${wh.contractorRating}/5</span></div>` : `<div><button class="btn btn-sm btn-accent" onclick="openRateModal(${wh.id})">Rate Now</button></div>`}
+                        </div>
+                    </div>
+
+                    ${endorsements.length > 0 ? `
+                    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--glass-border);">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Endorsements:</span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                            ${endorsements.map(e => `<span class="endorsement-tag">✅ ${e.skillTag} <span style="color: var(--text-muted); font-size: 0.75rem;">by ${e.contractorName}</span></span>`).join('')}
+                        </div>
+                    </div>` : ''}
+                </div>
+            `}).join('');
+        }
+
+        // ===== Rating Modal =====
+        function openRateModal(workHistoryId) {
+            document.getElementById('rateWorkHistoryId').value = workHistoryId;
+            currentRating = 0;
+            updateStarUI();
+            document.getElementById('rateNote').value = '';
+            openModal('rateModal');
+        }
+
+        function setRating(val) {
+            currentRating = val;
+            updateStarUI();
+        }
+
+        function updateStarUI() {
+            document.querySelectorAll('#rateStars .star').forEach(s => {
+                s.classList.toggle('filled', parseInt(s.dataset.value) <= currentRating);
+            });
+        }
+
+        async function submitRating() {
+            if (currentRating === 0) {
+                showToast('Please select a rating', 'error');
+                return;
+            }
+
+            const result = await api('/work-history/rate-contractor', {
+                method: 'POST',
+                body: {
+                    workHistoryId: parseInt(document.getElementById('rateWorkHistoryId').value),
+                    raterId: user.id,
+                    rating: currentRating,
+                    note: document.getElementById('rateNote').value.trim()
+                }
+            });
+
+            if (result.success) {
+                showToast('Rating submitted! Thank you 🙏', 'success');
+                closeModal('rateModal');
+                loadHistory();
+            } else {
+                showToast(result.message || 'Failed to submit rating', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

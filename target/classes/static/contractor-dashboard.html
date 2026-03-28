@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Dashboard — LabourLink</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 32px;
+            animation: fadeUp 0.5s ease;
+        }
+        .welcome-text h2 { font-family: 'Poppins', sans-serif; font-size: 1.8rem; font-weight: 700; }
+        .welcome-text p { color: var(--text-muted); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeUp 0.4s ease; }
+        .jobs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 20px;
+        }
+        .job-title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.15rem; }
+        .job-meta { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; align-items: center; }
+        .job-meta-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.9rem; }
+        .applicant-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 12px;
+            transition: all 0.3s;
+        }
+        .applicant-card:hover { border-color: rgba(255,107,53,0.2); }
+        .applicant-info { display: flex; align-items: center; gap: 14px; }
+        .applicant-actions { display: flex; gap: 8px; }
+        .history-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 640px) {
+            .form-row { grid-template-columns: 1fr; }
+            .jobs-grid { grid-template-columns: 1fr; }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <header class="navbar" id="navbar"></header>
+
+    <div class="page-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="avatar avatar-lg" style="background: var(--gradient-accent);" id="userAvatar">?</div>
+            <div class="welcome-text">
+                <h2 id="welcomeMsg">Welcome!</h2>
+                <p id="userMeta">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid-4 mb-3" id="statsGrid" style="animation: fadeUp 0.5s ease 0.15s both;"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('myjobs')">📋 My Jobs</button>
+            <button class="tab" onclick="switchTab('postjob')">➕ Post Job</button>
+            <button class="tab" onclick="switchTab('history')">📜 Work History</button>
+            <button class="tab" onclick="switchTab('workers')">👷 Browse Workers</button>
+        </div>
+
+        <!-- Tab: My Jobs -->
+        <div class="tab-content active" id="tab-myjobs">
+            <div class="jobs-grid" id="myJobsList"></div>
+        </div>
+
+        <!-- Tab: Post Job -->
+        <div class="tab-content" id="tab-postjob">
+            <div class="glass-card" style="max-width: 700px; padding: 36px;">
+                <h2 style="font-family: 'Poppins', sans-serif; font-weight: 700; margin-bottom: 24px;">📝 Post a New Job</h2>
+                <form onsubmit="handlePostJob(event)">
+                    <div class="form-group">
+                        <label>Job Title *</label>
+                        <input type="text" id="jobTitle" class="form-input" placeholder="e.g. Villa construction - Mason work" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Skill Required *</label>
+                            <select id="jobSkill" class="form-input" required>
+                                <option value="">Select skill</option>
+                                <option value="MASON">🧱 Mason</option>
+                                <option value="ELECTRICIAN">⚡ Electrician</option>
+                                <option value="PAINTER">🎨 Painter</option>
+                                <option value="LABOURER">💪 Labourer</option>
+                                <option value="PLUMBER">🔧 Plumber</option>
+                                <option value="CARPENTER">🪚 Carpenter</option>
+                                <option value="WELDER">🔥 Welder</option>
+                                <option value="TILE_FITTER">🔲 Tile Fitter</option>
+                                <option value="ROD_BINDER">🏗️ Rod Binder</option>
+                                <option value="HELPER">🤝 Helper</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Location (City) *</label>
+                            <select id="jobLocation" class="form-input" required>
+                                <option value="">Select city</option>
+                                <option value="Mumbai">Mumbai</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Bangalore">Bangalore</option>
+                                <option value="Pune">Pune</option>
+                                <option value="Hyderabad">Hyderabad</option>
+                                <option value="Chennai">Chennai</option>
+                                <option value="Kolkata">Kolkata</option>
+                                <option value="Ahmedabad">Ahmedabad</option>
+                                <option value="Jaipur">Jaipur</option>
+                                <option value="Nagpur">Nagpur</option>
+                                <option value="Nashik">Nashik</option>
+                                <option value="Surat">Surat</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="jobDesc" class="form-input" rows="3" placeholder="Describe the job requirements, site conditions, etc." style="resize: vertical;"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Daily Rate (₹) *</label>
+                            <input type="number" id="jobRate" class="form-input" placeholder="e.g. 800" required min="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Duration (Days) *</label>
+                            <input type="number" id="jobDuration" class="form-input" placeholder="e.g. 10" required min="1">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Workers Needed *</label>
+                            <input type="number" id="jobWorkers" class="form-input" placeholder="e.g. 3" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="jobStartDate" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" id="jobUrgent" style="width: 20px; height: 20px; accent-color: var(--danger);">
+                        <label style="margin: 0; cursor: pointer;" for="jobUrgent">🔥 Mark as URGENT (priority listing)</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 12px;" id="postJobBtn">
+                        Post Job
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab: Work History -->
+        <div class="tab-content" id="tab-history">
+            <div id="historyList"></div>
+        </div>
+
+        <!-- Tab: Browse Workers -->
+        <div class="tab-content" id="tab-workers">
+            <div class="filter-bar" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+                <select id="workerFilterSkill" class="form-input" style="max-width: 200px;" onchange="loadWorkers()">
+                    <option value="">All Skills</option>
+                    <option value="MASON">🧱 Mason</option>
+                    <option value="ELECTRICIAN">⚡ Electrician</option>
+                    <option value="PAINTER">🎨 Painter</option>
+                    <option value="LABOURER">💪 Labourer</option>
+                    <option value="PLUMBER">🔧 Plumber</option>
+                    <option value="CARPENTER">🪚 Carpenter</option>
+                    <option value="WELDER">🔥 Welder</option>
+                </select>
+                <select id="workerFilterCity" class="form-input" style="max-width: 200px;" onchange="loadWorkers()">
+                    <option value="">All Cities</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Bangalore">Bangalore</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Hyderabad">Hyderabad</option>
+                </select>
+            </div>
+            <div class="jobs-grid" id="workersList"></div>
+        </div>
+    </div>
+
+    <!-- Applicants Modal -->
+    <div class="modal-overlay" id="applicantsModal">
+        <div class="modal" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2>👷 Applicants</h2>
+                <button class="modal-close" onclick="closeModal('applicantsModal')">✕</button>
+            </div>
+            <div id="applicantsList"></div>
+        </div>
+    </div>
+
+    <!-- Rate Worker Modal -->
+    <div class="modal-overlay" id="rateModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>⭐ Rate Worker</h2>
+                <button class="modal-close" onclick="closeModal('rateModal')">✕</button>
+            </div>
+            <input type="hidden" id="rateWorkHistoryId">
+            <div class="form-group">
+                <label>How was this worker's performance?</label>
+                <div class="stars" id="rateStars" style="font-size: 2rem; margin: 16px 0;">
+                    <span class="star" data-value="1" onclick="setRating(1)">★</span>
+                    <span class="star" data-value="2" onclick="setRating(2)">★</span>
+                    <span class="star" data-value="3" onclick="setRating(3)">★</span>
+                    <span class="star" data-value="4" onclick="setRating(4)">★</span>
+                    <span class="star" data-value="5" onclick="setRating(5)">★</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Note (optional)</label>
+                <input type="text" id="rateNote" class="form-input" placeholder="e.g. Excellent masonry work, very punctual">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="submitWorkerRating()">Submit Rating</button>
+        </div>
+    </div>
+
+    <!-- Endorse Worker Modal -->
+    <div class="modal-overlay" id="endorseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🏷️ Endorse Worker</h2>
+                <button class="modal-close" onclick="closeModal('endorseModal')">✕</button>
+            </div>
+            <input type="hidden" id="endorseWorkHistoryId">
+            <div class="form-group">
+                <label>Skill Tag</label>
+                <input type="text" id="endorseSkillTag" class="form-input" placeholder="e.g. Expert Brickwork, Fast Worker, Neat Finish">
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('endorseSkillTag').value='Expert Brickwork'">Expert Brickwork</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('endorseSkillTag').value='Fast Worker'">Fast Worker</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('endorseSkillTag').value='Neat Finish'">Neat Finish</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('endorseSkillTag').value='Punctual'">Punctual</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('endorseSkillTag').value='Team Player'">Team Player</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('endorseSkillTag').value='Safety Conscious'">Safety Conscious</button>
+            </div>
+            <button class="btn btn-accent" style="width: 100%;" onclick="submitEndorsement()">Add Endorsement</button>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        const user = requireAuth();
+        if (user && user.role !== 'CONTRACTOR') {
+            window.location.href = '/worker-dashboard.html';
+        }
+
+        let currentRating = 0;
+
+        // ===== Init =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            renderNavbar('dashboard');
+            if (!user) return;
+
+            document.getElementById('userAvatar').textContent = getInitials(user.name);
+            document.getElementById('welcomeMsg').textContent = `Welcome, ${user.name}! 🏢`;
+            document.getElementById('userMeta').textContent = `${user.companyName || 'Independent Contractor'} • ${user.city} • Rating: ${user.contractorRating || 0}/5`;
+
+            await Promise.all([loadStats(), loadMyJobs(), loadHistory()]);
+        });
+
+        // ===== Stats =====
+        async function loadStats() {
+            const jobsRes = await api(`/jobs/contractor/${user.id}`);
+            const jobs = jobsRes.success ? jobsRes.data : [];
+
+            const open = jobs.filter(j => j.status === 'OPEN').length;
+            const ongoing = jobs.filter(j => j.status === 'ONGOING').length;
+            const completed = jobs.filter(j => j.status === 'COMPLETED').length;
+
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(16,185,129,0.12);">📋</div>
+                    <div class="stat-value" style="color: #34D399;">${open}</div>
+                    <div class="stat-label">Open Jobs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(255,184,0,0.12);">🔨</div>
+                    <div class="stat-value" style="color: #FBBF24;">${ongoing}</div>
+                    <div class="stat-label">Ongoing Jobs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99,102,241,0.12);">✅</div>
+                    <div class="stat-value" style="color: #818CF8;">${completed}</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(255,107,53,0.12);">⭐</div>
+                    <div class="stat-value" style="color: var(--primary);">${jobs.length}</div>
+                    <div class="stat-label">Total Jobs Posted</div>
+                </div>
+            `;
+        }
+
+        // ===== Tabs =====
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'history') loadHistory();
+            if (tabName === 'workers') loadWorkers();
+        }
+
+        // ===== Load My Jobs =====
+        async function loadMyJobs() {
+            const result = await api(`/jobs/contractor/${user.id}`);
+            const jobs = result.success ? result.data : [];
+
+            if (jobs.length === 0) {
+                document.getElementById('myJobsList').innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-icon">📋</div>
+                        <h3>No jobs posted yet</h3>
+                        <p>Post your first job to start hiring workers!</p>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('myJobsList').innerHTML = jobs.map(job => `
+                <div class="job-card">
+                    ${job.urgentFlag ? '<div class="urgent-badge">🔥 URGENT</div>' : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div class="job-title">${job.title}</div>
+                        ${statusBadge(job.status)}
+                    </div>
+                    <div class="job-meta">
+                        ${skillDisplay(job.skillRequired)}
+                        <span class="job-meta-item">📍 ${job.location}</span>
+                    </div>
+                    <div class="job-meta">
+                        <span class="job-meta-item">💰 ${formatCurrency(job.dailyRate)}/day</span>
+                        <span class="job-meta-item">⏱️ ${job.durationDays || '?'} days</span>
+                        <span class="job-meta-item">👷 ${job.numberOfWorkersNeeded} needed</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; border-top: 1px solid var(--glass-border); padding-top: 16px;">
+                        ${job.status === 'OPEN' || job.status === 'ONGOING' ? `
+                            <button class="btn btn-sm btn-primary" onclick="viewApplicants(${job.id})">👷 View Applicants</button>
+                        ` : ''}
+                        ${job.status === 'ONGOING' ? `
+                            <button class="btn btn-sm btn-accent" onclick="completeJob(${job.id})">✅ Mark Complete</button>
+                        ` : ''}
+                        ${job.status === 'OPEN' ? `
+                            <button class="btn btn-sm btn-secondary" onclick="viewApplicants(${job.id})" style="margin-left: auto;">Manage</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== Post Job =====
+        async function handlePostJob(e) {
+            e.preventDefault();
+            const btn = document.getElementById('postJobBtn');
+            btn.disabled = true;
+            btn.textContent = 'Posting...';
+
+            const job = {
+                contractorId: user.id,
+                title: document.getElementById('jobTitle').value.trim(),
+                skillRequired: document.getElementById('jobSkill').value,
+                location: document.getElementById('jobLocation').value,
+                description: document.getElementById('jobDesc').value.trim(),
+                dailyRate: parseFloat(document.getElementById('jobRate').value),
+                durationDays: parseInt(document.getElementById('jobDuration').value),
+                numberOfWorkersNeeded: parseInt(document.getElementById('jobWorkers').value),
+                startDate: document.getElementById('jobStartDate').value || null,
+                urgentFlag: document.getElementById('jobUrgent').checked
+            };
+
+            const result = await api('/jobs', { method: 'POST', body: job });
+
+            if (result.success) {
+                showToast('Job posted successfully! 🎉', 'success');
+                // Reset form
+                e.target.reset();
+                // Switch to My Jobs tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                document.querySelector('.tab').classList.add('active');
+                document.getElementById('tab-myjobs').classList.add('active');
+                loadMyJobs();
+                loadStats();
+            } else {
+                showToast(result.message || 'Failed to post job', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Post Job';
+        }
+
+        // ===== View Applicants =====
+        async function viewApplicants(jobId) {
+            const result = await api(`/jobs/${jobId}/applications`);
+            const apps = result.success ? result.data : [];
+
+            if (apps.length === 0) {
+                document.getElementById('applicantsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👷</div>
+                        <h3>No applicants yet</h3>
+                        <p>Workers will appear here when they apply</p>
+                    </div>`;
+            } else {
+                document.getElementById('applicantsList').innerHTML = apps.map(app => `
+                    <div class="applicant-card">
+                        <div class="applicant-info">
+                            <div class="avatar">${getInitials(app.workerName)}</div>
+                            <div>
+                                <div style="font-weight: 600;">${app.workerName || 'Worker'}</div>
+                                <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                    ${skillDisplay(app.workerSkill)} • ${renderStars(app.workerRating)} ${(app.workerRating || 0).toFixed(1)}
+                                </div>
+                                <div style="color: var(--text-muted); font-size: 0.85rem;">📞 ${app.workerPhone || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="applicant-actions">
+                            ${app.status === 'APPLIED' ? `
+                                <button class="btn btn-sm btn-accent" onclick="selectWorker(${app.id})">✅ Select</button>
+                                <button class="btn btn-sm btn-danger" onclick="rejectWorker(${app.id})">❌ Reject</button>
+                            ` : statusBadge(app.status)}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            openModal('applicantsModal');
+        }
+
+        // ===== Select/Reject Workers =====
+        async function selectWorker(applicationId) {
+            const result = await api(`/jobs/applications/${applicationId}/select`, { method: 'POST' });
+            if (result.success) {
+                showToast('Worker selected! ✅', 'success');
+                // Reload
+                const jobId = result.data.jobId;
+                viewApplicants(jobId);
+                loadMyJobs();
+                loadStats();
+            } else {
+                showToast(result.message || 'Failed to select worker', 'error');
+            }
+        }
+
+        async function rejectWorker(applicationId) {
+            const result = await api(`/jobs/applications/${applicationId}/reject`, { method: 'POST' });
+            if (result.success) {
+                showToast('Worker rejected', 'warning');
+                const jobId = result.data.jobId;
+                viewApplicants(jobId);
+            } else {
+                showToast(result.message || 'Failed to reject', 'error');
+            }
+        }
+
+        // ===== Complete Job =====
+        async function completeJob(jobId) {
+            if (!confirm('Are you sure you want to mark this job as completed?')) return;
+
+            const result = await api(`/jobs/${jobId}/complete?contractorId=${user.id}`, { method: 'POST' });
+            if (result.success) {
+                showToast('Job completed! Workers can now be rated. ✅', 'success');
+                loadMyJobs();
+                loadStats();
+                loadHistory();
+            } else {
+                showToast(result.message || 'Failed to complete job', 'error');
+            }
+        }
+
+        // ===== Load Work History =====
+        async function loadHistory() {
+            const result = await api(`/work-history/contractor/${user.id}`);
+            const history = result.success ? result.data : [];
+
+            if (history.length === 0) {
+                document.getElementById('historyList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📜</div>
+                        <h3>No completed jobs yet</h3>
+                        <p>Complete your first job to see work history</p>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('historyList').innerHTML = history.map(wh => `
+                <div class="history-card">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <div style="font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.1rem;">
+                                ${wh.jobTitle || 'Job #' + wh.jobId}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">
+                                Worker: <strong>${wh.workerName}</strong> • ${skillDisplay(wh.skillUsed)} • 📍 ${wh.location || 'N/A'}
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            ${formatDate(wh.startDate)} — ${formatDate(wh.endDate)}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap;">
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">You rated worker:</span>
+                            ${wh.contractorRated ? `<div>${renderStars(wh.workerRating)} ${wh.workerRating}/5</div>` : `<div><button class="btn btn-sm btn-primary" onclick="openRateWorkerModal(${wh.id})">⭐ Rate Worker</button></div>`}
+                            ${wh.workerNote ? `<div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">"${wh.workerNote}"</div>` : ''}
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">Worker rated you:</span>
+                            ${wh.workerRated ? `<div>${renderStars(wh.contractorRating)} ${wh.contractorRating}/5</div>` : '<div style="color: var(--text-muted); font-size: 0.85rem;">Pending</div>'}
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--glass-border); display: flex; gap: 8px;">
+                        <button class="btn btn-sm btn-accent" onclick="openEndorseModal(${wh.id})">🏷️ Add Endorsement</button>
+                        <a href="/worker-profile.html?id=${wh.workerId}" class="btn btn-sm btn-secondary">👤 View Profile</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== Browse Workers =====
+        async function loadWorkers() {
+            const skill = document.getElementById('workerFilterSkill').value;
+            const city = document.getElementById('workerFilterCity').value;
+
+            let url = '/users/workers?';
+            if (skill) url += `skill=${skill}&`;
+            if (city) url += `city=${city}&`;
+
+            const result = await api(url);
+            const workers = result.success ? result.data : [];
+
+            if (workers.length === 0) {
+                document.getElementById('workersList').innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-icon">👷</div>
+                        <h3>No workers found</h3>
+                        <p>Try adjusting your filters</p>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('workersList').innerHTML = workers.map(w => `
+                <div class="job-card">
+                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 12px;">
+                        <div class="avatar">${getInitials(w.name)}</div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 1.05rem;">${w.name}</div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">📍 ${w.city || 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div class="job-meta">
+                        ${skillDisplay(w.primarySkill)}
+                        <span class="job-meta-item">${renderStars(w.averageRating)} ${(w.averageRating || 0).toFixed(1)} (${w.totalRatings || 0})</span>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <a href="/worker-profile.html?id=${w.id}" class="btn btn-sm btn-primary">View Profile</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== Rate Worker Modal =====
+        function openRateWorkerModal(workHistoryId) {
+            document.getElementById('rateWorkHistoryId').value = workHistoryId;
+            currentRating = 0;
+            updateStarUI();
+            document.getElementById('rateNote').value = '';
+            openModal('rateModal');
+        }
+
+        function setRating(val) {
+            currentRating = val;
+            updateStarUI();
+        }
+
+        function updateStarUI() {
+            document.querySelectorAll('#rateStars .star').forEach(s => {
+                s.classList.toggle('filled', parseInt(s.dataset.value) <= currentRating);
+            });
+        }
+
+        async function submitWorkerRating() {
+            if (currentRating === 0) {
+                showToast('Please select a rating', 'error');
+                return;
+            }
+
+            const result = await api('/work-history/rate-worker', {
+                method: 'POST',
+                body: {
+                    workHistoryId: parseInt(document.getElementById('rateWorkHistoryId').value),
+                    raterId: user.id,
+                    rating: currentRating,
+                    note: document.getElementById('rateNote').value.trim()
+                }
+            });
+
+            if (result.success) {
+                showToast('Worker rated! Thank you 🙏', 'success');
+                closeModal('rateModal');
+                loadHistory();
+            } else {
+                showToast(result.message || 'Failed to submit rating', 'error');
+            }
+        }
+
+        // ===== Endorse Modal =====
+        function openEndorseModal(workHistoryId) {
+            document.getElementById('endorseWorkHistoryId').value = workHistoryId;
+            document.getElementById('endorseSkillTag').value = '';
+            openModal('endorseModal');
+        }
+
+        async function submitEndorsement() {
+            const skillTag = document.getElementById('endorseSkillTag').value.trim();
+            if (!skillTag) {
+                showToast('Please enter a skill tag', 'error');
+                return;
+            }
+
+            const result = await api('/work-history/endorse', {
+                method: 'POST',
+                body: {
+                    workHistoryId: parseInt(document.getElementById('endorseWorkHistoryId').value),
+                    contractorId: user.id,
+                    skillTag: skillTag
+                }
+            });
+
+            if (result.success) {
+                showToast('Endorsement added! 🏷️', 'success');
+                closeModal('endorseModal');
+                loadHistory();
+            } else {
+                showToast(result.message || 'Failed to add endorsement', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
