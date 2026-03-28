@@ -15,15 +15,21 @@ public class JobService {
     private final JobApplicationRepository applicationRepository;
     private final WorkHistoryRepository workHistoryRepository;
     private final UserRepository userRepository;
+    private final BroadcastService broadcastService;
+    private final NotificationService notificationService;
 
     public JobService(JobRepository jobRepository,
                       JobApplicationRepository applicationRepository,
                       WorkHistoryRepository workHistoryRepository,
-                      UserRepository userRepository) {
+                      UserRepository userRepository,
+                      BroadcastService broadcastService,
+                      NotificationService notificationService) {
         this.jobRepository = jobRepository;
         this.applicationRepository = applicationRepository;
         this.workHistoryRepository = workHistoryRepository;
         this.userRepository = userRepository;
+        this.broadcastService = broadcastService;
+        this.notificationService = notificationService;
     }
 
     // ===== Job CRUD =====
@@ -38,7 +44,14 @@ public class JobService {
 
         job.setContractorName(contractor.getName());
         job.setStatus(JobStatus.OPEN);
-        return jobRepository.save(job);
+        Job saved = jobRepository.save(job);
+
+        // Broadcast if urgent
+        if (Boolean.TRUE.equals(saved.getUrgentFlag())) {
+            broadcastService.broadcastUrgentJob(saved);
+        }
+
+        return saved;
     }
 
     public Job getJobById(Long id) {
@@ -115,6 +128,11 @@ public class JobService {
         application.setStatus(ApplicationStatus.SELECTED);
         applicationRepository.save(application);
 
+        // Notify worker
+        notificationService.create(application.getWorkerId(),
+                "🎉 You have been selected for Job #" + application.getJobId() + "! Get ready to start.",
+                "JOB_SELECTED", application.getJobId());
+
         // Check if all needed workers selected, then move to ONGOING
         Job job = getJobById(application.getJobId());
         List<JobApplication> selected = applicationRepository.findByJobIdAndStatus(
@@ -139,7 +157,7 @@ public class JobService {
     // ===== Job Completion =====
 
     @Transactional
-    public Job completeJob(Long jobId, Long contractorId) {
+    public Job completeJob(Long jobId, Long contractorId, String photos) {
         Job job = getJobById(jobId);
 
         if (!job.getContractorId().equals(contractorId)) {
@@ -178,8 +196,14 @@ public class JobService {
             wh.setLocation(job.getLocation());
             wh.setStartDate(job.getStartDate());
             wh.setEndDate(LocalDate.now());
+            wh.setPhotos(photos);
 
             workHistoryRepository.save(wh);
+
+            // Notify worker
+            notificationService.create(worker.getId(),
+                    "✅ Job \"" + job.getTitle() + "\" is now completed! Please rate your contractor.",
+                    "JOB_COMPLETED", jobId);
         }
 
         return job;

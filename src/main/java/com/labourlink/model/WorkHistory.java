@@ -43,6 +43,9 @@ public class WorkHistory {
     private Boolean workerRated = false;
     private Boolean contractorRated = false;
 
+    @Column(columnDefinition = "TEXT")
+    private String photos; // comma-separated URLs
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -103,6 +106,9 @@ public class WorkHistory {
 
     public Boolean getContractorRated() { return contractorRated; }
     public void setContractorRated(Boolean contractorRated) { this.contractorRated = contractorRated; }
+
+    public String getPhotos() { return photos; }
+    public void setPhotos(String photos) { this.photos = photos; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

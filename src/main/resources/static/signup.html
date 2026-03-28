@@ -5,184 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up — LabourLink</title>
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        .auth-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 100px 20px 40px;
-        }
-        .auth-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
-            padding: 48px 40px;
-            max-width: 500px;
-            width: 100%;
-            animation: fadeUp 0.5s ease;
-        }
-        .auth-header {
-            text-align: center;
-            margin-bottom: 36px;
-        }
-        .auth-header .emoji { font-size: 3rem; margin-bottom: 12px; display: block; }
-        .auth-header h2 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .auth-header p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-        .role-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 28px;
-        }
-        .role-btn {
-            padding: 20px;
-            border: 2px solid var(--glass-border);
-            border-radius: var(--radius);
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s;
-            font-family: 'Inter', sans-serif;
-        }
-        .role-btn:hover {
-            border-color: var(--primary);
-            color: var(--text-primary);
-        }
-        .role-btn.active {
-            border-color: var(--primary);
-            background: rgba(255, 107, 53, 0.1);
-            color: var(--primary);
-        }
-        .role-btn .role-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
-        .role-btn .role-name { font-weight: 600; font-size: 1rem; }
-        .auth-footer {
-            text-align: center;
-            margin-top: 24px;
-            color: var(--text-muted);
-        }
-        .auth-footer a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .auth-footer a:hover { text-decoration: underline; }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
 </head>
 <body>
     <div class="bg-pattern"></div>
     <header class="navbar" id="navbar"></header>
 
-    <div class="auth-page">
-        <div class="auth-card">
-            <div class="auth-header">
-                <span class="emoji">🏗️</span>
-                <h2>Join LabourLink</h2>
-                <p>Create your verified professional profile</p>
+    <div class="page-container" style="display: flex; align-items: center; justify-content: center; min-height: 85vh;">
+        <div class="glass-card" style="max-width: 520px; width: 100%; padding: 40px; animation: fadeUp 0.5s ease;">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <div style="font-size: 3rem; margin-bottom: 8px;">🏗️</div>
+                <h1 style="font-size: 1.8rem; font-weight: 800;" data-i18n="join_labourlink">Join LabourLink</h1>
+                <p style="color: var(--text-muted);" data-i18n="create_profile">Create your verified professional profile</p>
             </div>
 
-            <form id="signupForm" onsubmit="handleSignup(event)">
-                <!-- Role Selection -->
-                <div class="role-selector">
-                    <button type="button" class="role-btn" id="role-worker" onclick="selectRole('WORKER')">
-                        <span class="role-icon">💪</span>
-                        <span class="role-name">Worker</span>
-                    </button>
-                    <button type="button" class="role-btn" id="role-contractor" onclick="selectRole('CONTRACTOR')">
-                        <span class="role-icon">🏢</span>
-                        <span class="role-name">Contractor</span>
-                    </button>
+            <!-- Role Selector -->
+            <div class="role-selector" id="roleSelector">
+                <div class="role-option" onclick="selectRole('WORKER')" id="roleWorker">
+                    <div class="role-icon">👷</div>
+                    <div class="role-name" data-i18n="im_worker">Worker</div>
                 </div>
-
-                <input type="hidden" id="role" value="">
-
-                <div class="form-group">
-                    <label>Full Name *</label>
-                    <input type="text" id="name" class="form-input" placeholder="Enter your full name" required>
+                <div class="role-option" onclick="selectRole('CONTRACTOR')" id="roleContractor">
+                    <div class="role-icon">🏢</div>
+                    <div class="role-name" data-i18n="im_contractor">Contractor</div>
                 </div>
+            </div>
 
+            <form onsubmit="handleSignup(event)" id="signupForm">
+                <input type="hidden" id="selectedRole" value="">
                 <div class="form-group">
-                    <label>Phone Number *</label>
-                    <input type="tel" id="phone" class="form-input" placeholder="e.g. 9876543210" required
-                        pattern="[0-9]{10}" title="Enter 10-digit phone number">
+                    <label data-i18n="full_name">Full Name *</label>
+                    <input type="text" id="name" class="form-input" data-i18n="full_name" placeholder="Full Name" required>
                 </div>
-
                 <div class="form-group">
-                    <label>Password *</label>
-                    <input type="password" id="password" class="form-input" placeholder="Create a password" required minlength="4">
+                    <label data-i18n="phone_number">Phone Number *</label>
+                    <input type="tel" id="phone" class="form-input" placeholder="10-digit number" required pattern="[0-9]{10}">
                 </div>
-
                 <div class="form-group">
-                    <label>City *</label>
+                    <label data-i18n="password">Password *</label>
+                    <input type="password" id="password" class="form-input" placeholder="Min 4 characters" required minlength="4">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="city">City *</label>
                     <select id="city" class="form-input" required>
-                        <option value="">Select your city</option>
+                        <option value="" data-i18n="select_city">Select your city</option>
                         <option value="Mumbai">Mumbai</option>
                         <option value="Delhi">Delhi</option>
                         <option value="Bangalore">Bangalore</option>
-                        <option value="Hyderabad">Hyderabad</option>
                         <option value="Pune">Pune</option>
+                        <option value="Hyderabad">Hyderabad</option>
                         <option value="Chennai">Chennai</option>
                         <option value="Kolkata">Kolkata</option>
                         <option value="Ahmedabad">Ahmedabad</option>
                         <option value="Jaipur">Jaipur</option>
-                        <option value="Lucknow">Lucknow</option>
                         <option value="Nagpur">Nagpur</option>
-                        <option value="Nashik">Nashik</option>
                         <option value="Surat">Surat</option>
-                        <option value="Indore">Indore</option>
-                        <option value="Bhopal">Bhopal</option>
+                        <option value="Nashik">Nashik</option>
                     </select>
                 </div>
 
                 <!-- Worker-specific -->
-                <div id="worker-fields" class="hidden">
-                    <div class="form-group">
-                        <label>Primary Skill *</label>
-                        <select id="primarySkill" class="form-input">
-                            <option value="">Select your skill</option>
-                            <option value="MASON">🧱 Mason</option>
-                            <option value="ELECTRICIAN">⚡ Electrician</option>
-                            <option value="PAINTER">🎨 Painter</option>
-                            <option value="LABOURER">💪 Labourer</option>
-                            <option value="PLUMBER">🔧 Plumber</option>
-                            <option value="CARPENTER">🪚 Carpenter</option>
-                            <option value="WELDER">🔥 Welder</option>
-                            <option value="TILE_FITTER">🔲 Tile Fitter</option>
-                            <option value="ROD_BINDER">🏗️ Rod Binder</option>
-                            <option value="HELPER">🤝 Helper</option>
-                        </select>
-                    </div>
+                <div class="form-group" id="skillGroup" style="display: none;">
+                    <label data-i18n="primary_skill">Primary Skill *</label>
+                    <select id="skill" class="form-input">
+                        <option value="" data-i18n="select_skill">Select your skill</option>
+                        <option value="MASON">🧱 Mason</option>
+                        <option value="ELECTRICIAN">⚡ Electrician</option>
+                        <option value="PAINTER">🎨 Painter</option>
+                        <option value="LABOURER">💪 Labourer</option>
+                        <option value="PLUMBER">🔧 Plumber</option>
+                        <option value="CARPENTER">🪚 Carpenter</option>
+                        <option value="WELDER">🔥 Welder</option>
+                        <option value="TILE_FITTER">🔲 Tile Fitter</option>
+                        <option value="ROD_BINDER">🏗️ Rod Binder</option>
+                        <option value="HELPER">🤝 Helper</option>
+                    </select>
                 </div>
 
                 <!-- Contractor-specific -->
-                <div id="contractor-fields" class="hidden">
-                    <div class="form-group">
-                        <label>Company Name (Optional)</label>
-                        <input type="text" id="companyName" class="form-input" placeholder="Your company or firm name">
-                    </div>
+                <div class="form-group" id="companyGroup" style="display: none;">
+                    <label data-i18n="company_name">Company Name (Optional)</label>
+                    <input type="text" id="companyName" class="form-input" placeholder="e.g. RK Constructions">
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="submitBtn">
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="signupBtn" data-i18n="create_account">
                     Create Account
                 </button>
             </form>
 
-            <div class="auth-footer">
-                Already have an account? <a href="/login.html">Login here</a>
-            </div>
+            <p style="text-align: center; margin-top: 20px; color: var(--text-muted);">
+                <span data-i18n="already_have_account">Already have an account?</span>
+                <a href="/login.html" data-i18n="login_here">Login here</a>
+            </p>
         </div>
     </div>
 
@@ -190,70 +103,55 @@
     <script>
         let selectedRole = '';
 
-        // Check URL params for pre-selected role
-        const urlParams = new URLSearchParams(window.location.search);
-        const preRole = urlParams.get('role');
-        if (preRole) {
-            selectRole(preRole.toUpperCase());
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNavbar('signup');
+            // Pre-select role from URL param
+            const params = new URLSearchParams(window.location.search);
+            const role = params.get('role');
+            if (role === 'WORKER' || role === 'CONTRACTOR') selectRole(role);
+        });
 
         function selectRole(role) {
             selectedRole = role;
-            document.getElementById('role').value = role;
-
-            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`role-${role.toLowerCase()}`).classList.add('active');
-
-            document.getElementById('worker-fields').classList.toggle('hidden', role !== 'WORKER');
-            document.getElementById('contractor-fields').classList.toggle('hidden', role !== 'CONTRACTOR');
+            document.getElementById('selectedRole').value = role;
+            document.getElementById('roleWorker').classList.toggle('selected', role === 'WORKER');
+            document.getElementById('roleContractor').classList.toggle('selected', role === 'CONTRACTOR');
+            document.getElementById('skillGroup').style.display = role === 'WORKER' ? 'block' : 'none';
+            document.getElementById('companyGroup').style.display = role === 'CONTRACTOR' ? 'block' : 'none';
+            if (role === 'WORKER') document.getElementById('skill').required = true;
+            else document.getElementById('skill').required = false;
         }
 
         async function handleSignup(e) {
             e.preventDefault();
+            if (!selectedRole) { showToast('Please select Worker or Contractor', 'error'); return; }
 
-            if (!selectedRole) {
-                showToast('Please select Worker or Contractor', 'error');
-                return;
-            }
+            const btn = document.getElementById('signupBtn');
+            btn.disabled = true;
+            btn.textContent = '...';
 
-            const body = {
+            const user = {
                 name: document.getElementById('name').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 password: document.getElementById('password').value,
                 city: document.getElementById('city').value,
-                role: selectedRole
+                role: selectedRole,
+                primarySkill: selectedRole === 'WORKER' ? document.getElementById('skill').value : null,
+                companyName: selectedRole === 'CONTRACTOR' ? document.getElementById('companyName').value.trim() : null
             };
 
-            if (selectedRole === 'WORKER') {
-                const skill = document.getElementById('primarySkill').value;
-                if (!skill) {
-                    showToast('Please select your primary skill', 'error');
-                    return;
-                }
-                body.primarySkill = skill;
-            }
-
-            if (selectedRole === 'CONTRACTOR') {
-                body.companyName = document.getElementById('companyName').value.trim();
-            }
-
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Creating Account...';
-
-            const result = await api('/users/signup', { method: 'POST', body });
+            const result = await api('/users/signup', { method: 'POST', body: user });
 
             if (result.success) {
-                setCurrentUser(result.data);
-                showToast('Welcome to LabourLink! 🎉', 'success');
+                localStorage.setItem('user', JSON.stringify(result.data));
+                showToast('Account created! 🎉', 'success');
                 setTimeout(() => {
-                    const dash = selectedRole === 'WORKER' ? '/worker-dashboard.html' : '/contractor-dashboard.html';
-                    window.location.href = dash;
-                }, 1000);
+                    window.location.href = result.data.role === 'WORKER' ? '/worker-dashboard.html' : '/contractor-dashboard.html';
+                }, 500);
             } else {
                 showToast(result.message || 'Signup failed', 'error');
                 btn.disabled = false;
-                btn.textContent = 'Create Account';
+                btn.textContent = t('create_account');
             }
         }
     </script>

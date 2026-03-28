@@ -118,9 +118,10 @@ public class JobController {
     @PostMapping("/{jobId}/complete")
     public ResponseEntity<ApiResponse> completeJob(
             @PathVariable Long jobId,
-            @RequestParam Long contractorId) {
+            @RequestParam Long contractorId,
+            @RequestParam(required = false) String photos) {
         try {
-            Job job = jobService.completeJob(jobId, contractorId);
+            Job job = jobService.completeJob(jobId, contractorId, photos);
             return ResponseEntity.ok(ApiResponse.ok("Job marked as completed", job));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

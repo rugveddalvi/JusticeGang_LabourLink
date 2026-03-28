@@ -1,23 +1,35 @@
-// ===== LabourLink - Core JavaScript =====
+/* ============================================
+   LabourLink — Core JavaScript v2
+   i18n, Voice Nav, Notifications, Photo Upload
+============================================ */
 
 const API_BASE = '/api';
 
-// ===== Local Storage Helpers =====
-function setCurrentUser(user) {
-    localStorage.setItem('labourlink_user', JSON.stringify(user));
+// ===== API Helper =====
+async function api(endpoint, options = {}) {
+    try {
+        const config = {
+            headers: { 'Content-Type': 'application/json' },
+            ...options,
+        };
+        if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
+            config.body = JSON.stringify(config.body);
+        }
+        if (config.body instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+        const response = await fetch(`${API_BASE}${endpoint}`, config);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        return { success: false, message: 'Network error' };
+    }
 }
 
-function getCurrentUser() {
-    const data = localStorage.getItem('labourlink_user');
-    return data ? JSON.parse(data) : null;
-}
-
-function clearCurrentUser() {
-    localStorage.removeItem('labourlink_user');
-}
-
+// ===== Auth =====
 function requireAuth() {
-    const user = getCurrentUser();
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (!user) {
         window.location.href = '/login.html';
         return null;
@@ -25,155 +37,468 @@ function requireAuth() {
     return user;
 }
 
+function getUser() {
+    return JSON.parse(localStorage.getItem('user') || 'null');
+}
+
 function logout() {
-    clearCurrentUser();
-    window.location.href = '/index.html';
+    localStorage.removeItem('user');
+    window.location.href = '/';
 }
 
-// ===== API Helper =====
-async function api(endpoint, options = {}) {
-    const url = `${API_BASE}${endpoint}`;
-    const config = {
-        headers: { 'Content-Type': 'application/json' },
-        ...options,
-    };
-
-    if (config.body && typeof config.body === 'object') {
-        config.body = JSON.stringify(config.body);
-    }
-
-    try {
-        const response = await fetch(url, config);
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('API Error:', error);
-        return { success: false, message: 'Network error. Please try again.' };
-    }
+// ===== UI Helpers =====
+function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
 }
 
-// ===== Toast Notifications =====
-function showToast(message, type = 'success') {
+function formatCurrency(amount) {
+    return '₹' + (amount || 0).toLocaleString('en-IN');
+}
+
+function formatDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+}
+
+const SKILL_MAP = {
+    MASON: { icon: '🧱', name: 'Mason' },
+    ELECTRICIAN: { icon: '⚡', name: 'Electrician' },
+    PAINTER: { icon: '🎨', name: 'Painter' },
+    LABOURER: { icon: '💪', name: 'Labourer' },
+    PLUMBER: { icon: '🔧', name: 'Plumber' },
+    CARPENTER: { icon: '🪚', name: 'Carpenter' },
+    WELDER: { icon: '🔥', name: 'Welder' },
+    TILE_FITTER: { icon: '🔲', name: 'Tile Fitter' },
+    ROD_BINDER: { icon: '🏗️', name: 'Rod Binder' },
+    HELPER: { icon: '🤝', name: 'Helper' },
+};
+
+function skillDisplay(skill) {
+    const s = SKILL_MAP[skill];
+    return s ? `<span class="job-meta-item">${s.icon} ${s.name}</span>` : (skill || '');
+}
+
+function statusBadge(status) {
+    const sm = { OPEN: '🟢', ONGOING: '🔨', COMPLETED: '✅', APPLIED: '📝', SELECTED: '✅', REJECTED: '❌' };
+    return `<span class="status-badge status-${status}">${sm[status] || ''} ${status}</span>`;
+}
+
+function renderStars(rating) {
+    const r = Math.round(rating || 0);
+    return '★'.repeat(r) + '☆'.repeat(5 - r);
+}
+
+// ===== Toast =====
+function showToast(message, type = 'info') {
     let container = document.querySelector('.toast-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'toast-container';
         document.body.appendChild(container);
     }
-
-    const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️'
-    };
-
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${icons[type] || '📢'}</span><span>${message}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.remove();
-    }, 3500);
+    toast.innerHTML = `<span>${icons[type] || ''}</span><span>${message}</span>`;
+    container.prepend(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
 }
 
-// ===== Render Stars =====
-function renderStars(rating, interactive = false, onRate = null) {
-    rating = rating || 0;
-    let html = '<div class="stars">';
-    for (let i = 1; i <= 5; i++) {
-        const filled = i <= Math.round(rating) ? 'filled' : '';
-        if (interactive) {
-            html += `<span class="star ${filled}" data-value="${i}" onclick="${onRate}(${i})">★</span>`;
-        } else {
-            html += `<span class="star ${filled}">★</span>`;
-        }
+// ===== Modal =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ===================================================================
+// ===== i18n — Multi-language Support =====
+// ===================================================================
+let currentLocale = {};
+let currentLang = localStorage.getItem('lang') || 'en';
+
+async function loadLanguage(lang) {
+    try {
+        const res = await fetch(`/locales/${lang}.json`);
+        currentLocale = await res.json();
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
+        applyTranslations();
+        updateLangButtons();
+    } catch (e) {
+        console.error('Failed to load locale:', lang, e);
     }
-    html += '</div>';
-    return html;
 }
 
-// ===== Badge Helper =====
-function statusBadge(status) {
-    const s = status.toLowerCase();
-    return `<span class="badge badge-${s}">${status}</span>`;
+function t(key) {
+    return currentLocale[key] || key;
 }
 
-// ===== Skill Display =====
-const skillIcons = {
-    MASON: '🧱', ELECTRICIAN: '⚡', PAINTER: '🎨', LABOURER: '💪',
-    PLUMBER: '🔧', CARPENTER: '🪚', WELDER: '🔥', TILE_FITTER: '🔲',
-    ROD_BINDER: '🏗️', HELPER: '🤝'
-};
-
-function skillDisplay(skill) {
-    const icon = skillIcons[skill] || '🔨';
-    const name = skill ? skill.replace('_', ' ') : 'N/A';
-    return `<span class="skill-tag">${icon} ${name}</span>`;
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (currentLocale[key]) {
+            if (el.tagName === 'INPUT' && el.type !== 'submit') {
+                el.placeholder = currentLocale[key];
+            } else if (el.tagName === 'OPTION') {
+                el.textContent = currentLocale[key];
+            } else {
+                el.textContent = currentLocale[key];
+            }
+        }
+    });
 }
 
-// ===== Format Date =====
-function formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+function updateLangButtons() {
+    document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === currentLang);
+    });
 }
 
-// ===== Format Currency =====
-function formatCurrency(amount) {
-    if (!amount) return '₹0';
-    return '₹' + Number(amount).toLocaleString('en-IN');
-}
+// ===================================================================
+// ===== Navbar Renderer =====
+// ===================================================================
+function renderNavbar(activePage) {
+    const user = getUser();
+    const navbar = document.getElementById('navbar');
+    if (!navbar) return;
 
-// ===== Avatar from name =====
-function getInitials(name) {
-    if (!name) return '?';
-    return name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
-}
+    let links = '';
 
-// ===== Navbar Rendering =====
-function renderNavbar(activePage = '') {
-    const user = getCurrentUser();
-    const nav = document.getElementById('navbar');
-    if (!nav) return;
+    const langSwitcher = `
+        <div class="lang-switcher">
+            <button class="lang-btn ${currentLang === 'en' ? 'active' : ''}" data-lang="en" onclick="loadLanguage('en')">EN</button>
+            <button class="lang-btn ${currentLang === 'hi' ? 'active' : ''}" data-lang="hi" onclick="loadLanguage('hi')">हिं</button>
+            <button class="lang-btn ${currentLang === 'mr' ? 'active' : ''}" data-lang="mr" onclick="loadLanguage('mr')">मरा</button>
+        </div>
+    `;
 
-    let rightNav = '';
     if (user) {
         const dashUrl = user.role === 'WORKER' ? '/worker-dashboard.html' : '/contractor-dashboard.html';
-        rightNav = `
-            <a href="${dashUrl}" class="nav-link ${activePage === 'dashboard' ? 'active' : ''}">🏠 Dashboard</a>
-            ${user.role === 'WORKER' ? `<a href="/worker-profile.html?id=${user.id}" class="nav-link ${activePage === 'profile' ? 'active' : ''}">👤 Profile</a>` : ''}
-            <span class="nav-link" style="color: var(--text-muted); cursor: default;">Hi, ${user.name.split(' ')[0]}</span>
-            <button class="btn btn-sm btn-secondary" onclick="logout()">Logout</button>
+        const profileBit = user.role === 'WORKER'
+            ? `<a href="/worker-profile.html?id=${user.id}" class="btn btn-sm btn-secondary" data-i18n="profile">🧑 Profile</a>`
+            : '';
+
+        links = `
+            ${langSwitcher}
+            <button class="notif-bell" onclick="toggleNotifPanel()" id="notifBellBtn">
+                🔔
+                <span class="notif-badge" id="notifCount" style="display: none;">0</span>
+            </button>
+            <a href="${dashUrl}" class="btn btn-sm ${activePage === 'dashboard' ? 'btn-primary' : 'btn-secondary'}" data-i18n="dashboard">🏠 Dashboard</a>
+            ${profileBit}
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Hi, ${user.name.split(' ')[0]}</span>
+            <button class="btn btn-sm btn-danger" onclick="logout()" data-i18n="logout">Logout</button>
         `;
     } else {
-        rightNav = `
-            <a href="/login.html" class="btn btn-sm btn-secondary">Login</a>
-            <a href="/signup.html" class="btn btn-sm btn-primary">Sign Up</a>
+        links = `
+            ${langSwitcher}
+            <a href="/login.html" class="btn btn-sm btn-secondary" data-i18n="login">Login</a>
+            <a href="/signup.html" class="btn btn-sm btn-primary" data-i18n="signup">Sign Up</a>
         `;
     }
 
-    nav.innerHTML = `
-        <a href="/index.html" class="navbar-brand">
-            <div class="logo-icon">🏗️</div>
-            <h1>LabourLink</h1>
+    navbar.innerHTML = `
+        <a href="/" class="nav-brand">
+            <div class="nav-brand-icon">🏗️</div>
+            <span data-i18n="app_name">LabourLink</span>
         </a>
-        <nav class="navbar-nav">
-            ${rightNav}
-        </nav>
+        <div class="nav-links">${links}</div>
     `;
+
+    // Notification panel
+    if (user && !document.getElementById('notifPanel')) {
+        const panel = document.createElement('div');
+        panel.className = 'notif-panel';
+        panel.id = 'notifPanel';
+        panel.innerHTML = `
+            <div class="notif-panel-header">
+                <span data-i18n="notifications">🔔 Notifications</span>
+                <button class="btn btn-sm btn-secondary" onclick="markAllNotifRead()" data-i18n="mark_all_read">Mark all read</button>
+            </div>
+            <div class="notif-panel-body" id="notifPanelBody">
+                <div class="spinner"></div>
+            </div>
+        `;
+        document.body.appendChild(panel);
+        loadNotifications();
+    }
+
+    // Re-apply translations after render
+    applyTranslations();
 }
 
-// ===== Modal Helpers =====
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
+// ===================================================================
+// ===== Notifications =====
+// ===================================================================
+let notifPollInterval = null;
+
+async function loadNotifications() {
+    const user = getUser();
+    if (!user) return;
+
+    const result = await api(`/notifications/${user.id}`);
+    if (!result.success) return;
+
+    const { notifications, unreadCount } = result.data;
+    const badge = document.getElementById('notifCount');
+    if (badge) {
+        if (unreadCount > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    const body = document.getElementById('notifPanelBody');
+    if (body) {
+        if (!notifications || notifications.length === 0) {
+            body.innerHTML = `<div style="text-align: center; padding: 30px; color: var(--text-muted);" data-i18n="no_notifications">No notifications</div>`;
+        } else {
+            body.innerHTML = notifications.slice(0, 20).map(n => `
+                <div class="notif-item ${n.readStatus ? '' : 'unread'}" onclick="markNotifRead(${n.id})">
+                    <div>${n.message}</div>
+                    <div class="notif-time">${formatTimeAgo(n.createdAt)}</div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Show browser notification for new urgent ones
+    if (unreadCount > 0 && Notification.permission === 'granted') {
+        const urgent = notifications.find(n => !n.readStatus && n.type === 'URGENT_JOB');
+        if (urgent) {
+            new Notification('🔥 LabourLink — Urgent Job!', {
+                body: urgent.message,
+                icon: '/favicon.ico'
+            });
+        }
+    }
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
+function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    if (panel) {
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) loadNotifications();
+    }
 }
 
-// ===== Page Ready =====
-document.addEventListener('DOMContentLoaded', () => {
-    renderNavbar();
+async function markNotifRead(id) {
+    await api(`/notifications/${id}/read`, { method: 'POST' });
+    loadNotifications();
+}
+
+async function markAllNotifRead() {
+    const user = getUser();
+    if (!user) return;
+    await api(`/notifications/read-all/${user.id}`, { method: 'POST' });
+    loadNotifications();
+    showToast('All notifications marked as read', 'success');
+}
+
+// Poll for notifications every 30s
+function startNotifPolling() {
+    if (notifPollInterval) clearInterval(notifPollInterval);
+    notifPollInterval = setInterval(loadNotifications, 30000);
+}
+
+// Close notif panel when clicking outside
+document.addEventListener('click', (e) => {
+    const panel = document.getElementById('notifPanel');
+    const bell = document.getElementById('notifBellBtn');
+    if (panel && panel.classList.contains('open') &&
+        !panel.contains(e.target) && !bell.contains(e.target)) {
+        panel.classList.remove('open');
+    }
+});
+
+// ===================================================================
+// ===== Request Browser Notification Permission =====
+// ===================================================================
+function requestNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(perm => {
+            if (perm === 'granted') {
+                showToast('📲 Notifications enabled!', 'success');
+            }
+        });
+    }
+}
+
+// ===================================================================
+// ===== Voice Navigation (Web Speech API) =====
+// ===================================================================
+let voiceRecognition = null;
+let isListening = false;
+
+function initVoiceNav() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.log('Speech recognition not supported');
+        return;
+    }
+
+    voiceRecognition = new SpeechRecognition();
+    voiceRecognition.continuous = false;
+    voiceRecognition.interimResults = false;
+    voiceRecognition.lang = currentLang === 'hi' ? 'hi-IN' : currentLang === 'mr' ? 'mr-IN' : 'en-IN';
+
+    voiceRecognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+        console.log('Voice:', transcript);
+        showVoiceFeedback(`🎤 "${transcript}"`);
+        handleVoiceCommand(transcript);
+    };
+
+    voiceRecognition.onend = () => {
+        isListening = false;
+        const fab = document.getElementById('voiceFab');
+        if (fab) fab.classList.remove('listening');
+    };
+
+    voiceRecognition.onerror = (err) => {
+        isListening = false;
+        const fab = document.getElementById('voiceFab');
+        if (fab) fab.classList.remove('listening');
+        if (err.error !== 'no-speech') {
+            showVoiceFeedback('❌ Could not understand. Try again.');
+        }
+    };
+}
+
+function toggleVoice() {
+    if (!voiceRecognition) {
+        initVoiceNav();
+        if (!voiceRecognition) {
+            showToast('Voice not supported in this browser', 'error');
+            return;
+        }
+    }
+
+    // Update language
+    voiceRecognition.lang = currentLang === 'hi' ? 'hi-IN' : currentLang === 'mr' ? 'mr-IN' : 'en-IN';
+
+    const fab = document.getElementById('voiceFab');
+    if (isListening) {
+        voiceRecognition.stop();
+        isListening = false;
+        if (fab) fab.classList.remove('listening');
+    } else {
+        voiceRecognition.start();
+        isListening = true;
+        if (fab) fab.classList.add('listening');
+        showVoiceFeedback('🎤 Listening... Say a command');
+    }
+}
+
+function handleVoiceCommand(cmd) {
+    // English commands
+    if (cmd.includes('show job') || cmd.includes('browse job') || cmd.includes('find job') || cmd.includes('काम दिखाओ') || cmd.includes('काम शोधा')) {
+        document.querySelector('[onclick*="switchTab(\'browse\')"]')?.click();
+        speakBack('Showing available jobs');
+        if (typeof loadJobs === 'function') loadJobs();
+    }
+    else if (cmd.includes('my application') || cmd.includes('मेरे आवेदन') || cmd.includes('माझे अर्ज')) {
+        document.querySelector('[onclick*="switchTab(\'applications\')"]')?.click();
+        speakBack('Here are your applications');
+    }
+    else if (cmd.includes('my profile') || cmd.includes('profile') || cmd.includes('प्रोफ़ाइल') || cmd.includes('प्रोफाइल')) {
+        const user = getUser();
+        if (user) window.location.href = `/worker-profile.html?id=${user.id}`;
+        speakBack('Opening your profile');
+    }
+    else if (cmd.includes('history') || cmd.includes('work history') || cmd.includes('इतिहास')) {
+        document.querySelector('[onclick*="switchTab(\'history\')"]')?.click();
+        speakBack('Showing your work history');
+    }
+    else if (cmd.startsWith('apply') || cmd.includes('apply to job') || cmd.includes('आवेदन') || cmd.includes('अर्ज करा')) {
+        const match = cmd.match(/(\d+)/);
+        if (match && typeof applyToJobByIndex === 'function') {
+            applyToJobByIndex(parseInt(match[1]) - 1);
+            speakBack(`Applying to job number ${match[1]}`);
+        } else {
+            speakBack('Please say the job number. For example, apply to job number 1.');
+        }
+    }
+    else if (cmd.includes('refresh') || cmd.includes('रिफ्रेश')) {
+        location.reload();
+    }
+    else if (cmd.includes('notification') || cmd.includes('सूचना')) {
+        toggleNotifPanel();
+        speakBack('Showing your notifications');
+    }
+    else {
+        speakBack('Command not recognized. Try: show jobs, my profile, apply to job 1, or refresh.');
+    }
+}
+
+function speakBack(text) {
+    if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = currentLang === 'hi' ? 'hi-IN' : currentLang === 'mr' ? 'mr-IN' : 'en-IN';
+        utter.rate = 0.9;
+        window.speechSynthesis.speak(utter);
+    }
+    showVoiceFeedback(`🔊 ${text}`);
+}
+
+function showVoiceFeedback(text) {
+    let fb = document.getElementById('voiceFeedback');
+    if (!fb) {
+        fb = document.createElement('div');
+        fb.className = 'voice-feedback';
+        fb.id = 'voiceFeedback';
+        document.body.appendChild(fb);
+    }
+    fb.textContent = text;
+    fb.classList.add('visible');
+    setTimeout(() => fb.classList.remove('visible'), 4000);
+}
+
+// ===================================================================
+// ===== Photo Upload Helper =====
+// ===================================================================
+async function uploadPhotos(fileInput) {
+    const files = fileInput.files;
+    if (!files || files.length === 0) return [];
+
+    const formData = new FormData();
+    for (let i = 0; i < Math.min(files.length, 2); i++) {
+        formData.append('files', files[i]);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        return result.success ? result.data : [];
+    } catch (e) {
+        console.error('Upload error:', e);
+        return [];
+    }
+}
+
+// ===================================================================
+// ===== Init — Run on every page =====
+// ===================================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadLanguage(currentLang);
+    const user = getUser();
+    if (user) {
+        startNotifPolling();
+        requestNotifPermission();
+    }
 });
