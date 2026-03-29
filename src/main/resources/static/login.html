@@ -5,34 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — LabourLink</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <div class="bg-pattern"></div>
     <header class="navbar" id="navbar"></header>
 
-    <div class="page-container" style="display: flex; align-items: center; justify-content: center; min-height: 85vh;">
-        <div class="glass-card" style="max-width: 440px; width: 100%; padding: 40px; animation: fadeUp 0.5s ease;">
-            <div style="text-align: center; margin-bottom: 32px;">
-                <div style="font-size: 3rem; margin-bottom: 8px;">👋</div>
-                <h1 style="font-size: 1.8rem; font-weight: 800;" data-i18n="welcome_back">Welcome Back</h1>
-                <p style="color: var(--text-muted);" data-i18n="login_with_phone">Login with your phone number</p>
+    <div class="page-container auth-wrapper">
+        <div class="auth-card">
+            <div style="text-align: center; margin-bottom: 28px;">
+                <div style="font-size: 2.8rem; margin-bottom: 6px;">👋</div>
+                <h1 style="font-size: 1.7rem; font-weight: 800;" data-i18n="welcome_back">Welcome Back</h1>
+                <p style="color: var(--text-muted); font-size: 0.92rem;" data-i18n="login_with_phone">Login with your phone number</p>
             </div>
 
             <form onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label data-i18n="phone_number">Phone Number</label>
+                    <label><i class="fas fa-phone" style="margin-right: 6px;"></i><span data-i18n="phone_number">Phone Number</span></label>
                     <input type="tel" id="phone" class="form-input" placeholder="10-digit number" required pattern="[0-9]{10}">
                 </div>
                 <div class="form-group">
-                    <label data-i18n="password">Password</label>
+                    <label><i class="fas fa-lock" style="margin-right: 6px;"></i><span data-i18n="password">Password</span></label>
                     <input type="password" id="password" class="form-input" placeholder="Your password" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="loginBtn" data-i18n="login">
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 6px;" id="loginBtn" data-i18n="login">
                     Login
                 </button>
             </form>
 
-            <p style="text-align: center; margin-top: 20px; color: var(--text-muted);">
+            <p style="text-align: center; margin-top: 18px; color: var(--text-muted); font-size: 0.9rem;">
                 <span data-i18n="no_account">Don't have an account?</span>
                 <a href="/signup.html" data-i18n="signup_free">Sign up free</a>
             </p>
@@ -46,8 +46,7 @@
         async function handleLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('loginBtn');
-            btn.disabled = true;
-            btn.textContent = '...';
+            btn.disabled = true; btn.textContent = '...';
 
             const result = await api('/users/login', {
                 method: 'POST',
@@ -65,8 +64,7 @@
                 }, 500);
             } else {
                 showToast(result.message || 'Login failed', 'error');
-                btn.disabled = false;
-                btn.textContent = t('login');
+                btn.disabled = false; btn.textContent = t('login');
             }
         }
     </script>

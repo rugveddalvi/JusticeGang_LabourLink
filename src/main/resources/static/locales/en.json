@@ -112,5 +112,9 @@
     "speak_now": "Speak now",
     "upload_photos": "Upload Photos (max 2)",
     "photo_evidence": "Photo Evidence",
-    "view_profile": "View Profile"
+    "view_profile": "View Profile",
+    "use_my_location": "📍 Use My Location",
+    "find_jobs": "Find Jobs",
+    "voice_assistant": "Voice Assistant",
+    "my_profile": "My Profile"
 }

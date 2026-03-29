@@ -492,9 +492,135 @@ async function uploadPhotos(fileInput) {
 }
 
 // ===================================================================
+// ===== 3D Animated Background =====
+// ===================================================================
+function render3DBackground() {
+    // Check if already rendered or if bg-3d container exists
+    if (document.querySelector('.bg-3d')) return;
+
+    const bg = document.createElement('div');
+    bg.className = 'bg-3d';
+    bg.innerHTML = `
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+    `;
+    document.body.prepend(bg);
+
+    // Grid overlay
+    if (!document.querySelector('.bg-grid')) {
+        const grid = document.createElement('div');
+        grid.className = 'bg-grid';
+        document.body.insertBefore(grid, bg.nextSibling);
+    }
+}
+
+// ===================================================================
+// ===== Geolocation — Fill Current Location =====
+// ===================================================================
+async function fillCurrentLocation(inputId) {
+    const input = document.getElementById(inputId);
+    const btn = event?.target?.closest('.location-btn');
+
+    if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser', 'error');
+        return;
+    }
+
+    // Show loading state
+    if (btn) {
+        btn.classList.add('loading');
+        btn.innerHTML = '<div class="spinner-sm"></div> Detecting...';
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            try {
+                // Reverse geocode using OpenStreetMap Nominatim — zoom=18 for max specificity
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+                    { headers: { 'Accept-Language': 'en' } }
+                );
+                const data = await response.json();
+
+                // Build a specific address string
+                const addr = data.address || {};
+                const parts = [];
+
+                // Most specific first
+                if (addr.neighbourhood || addr.suburb || addr.hamlet) {
+                    parts.push(addr.neighbourhood || addr.suburb || addr.hamlet);
+                }
+                if (addr.road) parts.push(addr.road);
+                if (addr.city || addr.town || addr.village) {
+                    parts.push(addr.city || addr.town || addr.village);
+                }
+                if (addr.state_district && addr.state_district !== (addr.city || addr.town)) {
+                    parts.push(addr.state_district);
+                }
+                if (addr.state) parts.push(addr.state);
+
+                // Fallback to display_name if parts are empty
+                const fullLocation = parts.length > 0 ? parts.join(', ') : (data.display_name || 'Unknown');
+
+                input.value = fullLocation;
+                showToast(`📍 ${fullLocation}`, 'success');
+
+                // Store coordinates in hidden fields if they exist
+                const latField = document.getElementById('latitude');
+                const lonField = document.getElementById('longitude');
+                if (latField) latField.value = latitude;
+                if (lonField) lonField.value = longitude;
+
+            } catch (error) {
+                console.error('Reverse geocoding error:', error);
+                showToast('Could not determine location', 'error');
+            }
+
+            // Reset button
+            if (btn) {
+                btn.classList.remove('loading');
+                btn.innerHTML = '📍 Use My Location';
+            }
+        },
+        (error) => {
+            // Reset button
+            if (btn) {
+                btn.classList.remove('loading');
+                btn.innerHTML = '📍 Use My Location';
+            }
+
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    showToast('Location permission denied. Please allow location access.', 'error');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    showToast('Location unavailable', 'error');
+                    break;
+                case error.TIMEOUT:
+                    showToast('Location request timed out', 'error');
+
+                    break;
+                default:
+                    showToast('Could not get location', 'error');
+            }
+        },
+        {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000 // Cache for 5 minutes
+        }
+    );
+}
+
+// ===================================================================
 // ===== Init — Run on every page =====
 // ===================================================================
 document.addEventListener('DOMContentLoaded', async () => {
+    // Render 3D animated background on all pages
+    render3DBackground();
+
     await loadLanguage(currentLang);
     const user = getUser();
     if (user) {
